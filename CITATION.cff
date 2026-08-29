@@ -1,0 +1,52 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the associated paper."
+title: "PC³ — Physics-Constrained Conformal Prediction for Composites"
+version: 1.1.0
+date-released: 2026-08-28
+license: MIT
+repository-code: "https://github.com/magzhansaken/pc3-conformal"
+url: "https://github.com/magzhansaken/pc3-conformal"
+authors:
+  - family-names: Sarsenbay
+    given-names: M.
+    orcid: "https://orcid.org/0009-0003-5365-5297"
+  - family-names: Zhuzbayev
+    given-names: S.
+    orcid: "https://orcid.org/0000-0002-0018-6816"
+  - family-names: Alkhanova
+    given-names: G.
+    orcid: "https://orcid.org/0000-0002-1151-7254"
+  - family-names: Baenova
+    given-names: G.
+    orcid: "https://orcid.org/0009-0009-6191-458X"
+  - family-names: Niyazova
+    given-names: R.
+    orcid: "https://orcid.org/0000-0001-6945-7998"
+  - family-names: Bakytzhan
+    given-names: A.
+    orcid: "https://orcid.org/0009-0005-8320-6139"
+preferred-citation:
+  type: article
+  title: "An Uncertainty-Aware Decision-Support System for Composite-Property Prediction with Physically Admissible Conformal Intervals"
+  authors:
+    - family-names: Sarsenbay
+      given-names: M.
+      orcid: "https://orcid.org/0009-0003-5365-5297"
+    - family-names: Zhuzbayev
+      given-names: S.
+      orcid: "https://orcid.org/0000-0002-0018-6816"
+    - family-names: Alkhanova
+      given-names: G.
+      orcid: "https://orcid.org/0000-0002-1151-7254"
+    - family-names: Baenova
+      given-names: G.
+      orcid: "https://orcid.org/0009-0009-6191-458X"
+    - family-names: Niyazova
+      given-names: R.
+      orcid: "https://orcid.org/0000-0001-6945-7998"
+    - family-names: Bakytzhan
+      given-names: A.
+      orcid: "https://orcid.org/0009-0005-8320-6139"
+  journal: "Information"
+  year: 2026
+  notes: "DOI to be assigned on acceptance"

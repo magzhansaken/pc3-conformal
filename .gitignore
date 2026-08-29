@@ -1,0 +1,22 @@
+__pycache__/
+*.pyc
+out/
+concrete.csv
+elastic_tensor.csv
+data/*.xlsx
+data/*.csv
+.DS_Store
+.ipynb_checkpoints/
+*.egg-info/
+.venv/
+paper/*.aux
+paper/*.bbl
+paper/*.blg
+paper/*.log
+paper/*.out
+paper/*.toc
+paper/*.synctex.gz
+
+# manuscript sources are not published here
+paper/
+*.patch
