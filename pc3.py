@@ -203,6 +203,9 @@ def gp_interval(Xtr, ytr, Xte, alpha, cap=500):
     return mu, mu - z * sd, mu + z * sd
 
 def ngb_interval(Xtr, ytr, Xte, alpha):
+    # NGBoost draws from the global NumPy stream during boosting, so random_state
+    # alone does not make it reproducible; seed the global stream as well.
+    np.random.seed(0)
     m = NGBRegressor(Dist=Normal, n_estimators=300, learning_rate=0.04, verbose=False,
                      random_state=0).fit(Xtr, ytr)
     d = m.pred_dist(Xte); z = _z(alpha)
