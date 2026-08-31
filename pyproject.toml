@@ -8,8 +8,8 @@ license = { file = "LICENSE" }
 authors = [
   { name = "M. Sarsenbay" },
   { name = "S. Zhuzbayev" },
-  { name = "G. Alkhanova" },
   { name = "G. Baenova" },
+  { name = "G. Alkhanova" },
   { name = "R. Niyazova" },
   { name = "A. Bakytzhan" },
 ]

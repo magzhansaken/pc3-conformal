@@ -3,7 +3,7 @@
 Reference implementation and reproduction code for the paper:
 
 > **An Uncertainty-Aware Decision-Support System for Composite-Property Prediction with Physically Admissible Conformal Intervals**
-> M. Sarsenbay, S. Zhuzbayev, G. Alkhanova, G. Baenova, R. Niyazova, A. Bakytzhan. *Information* (MDPI), 2026, submitted. DOI: *to be assigned on acceptance*.
+> M. Sarsenbay, S. Zhuzbayev, G. Baenova, G. Alkhanova, R. Niyazova, A. Bakytzhan. *Information* (MDPI), 2026, submitted. DOI: *to be assigned on acceptance*.
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green)
@@ -145,7 +145,7 @@ If you use this code, please cite the paper (see `CITATION.cff`):
 ```bibtex
 @article{sarsenbay2026pc3,
   title   = {An Uncertainty-Aware Decision-Support System for Composite-Property Prediction with Physically Admissible Conformal Intervals},
-  author  = {Sarsenbay, M. and Zhuzbayev, S. and Alkhanova, G. and Baenova, G. and Niyazova, R. and Bakytzhan, A.},
+  author  = {Sarsenbay, M. and Zhuzbayev, S. and Baenova, G. and Alkhanova, G. and Niyazova, R. and Bakytzhan, A.},
   journal = {Information},
   year    = {2026},
   note    = {DOI to be assigned on acceptance}

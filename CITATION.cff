@@ -13,12 +13,12 @@ authors:
   - family-names: Zhuzbayev
     given-names: S.
     orcid: "https://orcid.org/0000-0002-0018-6816"
-  - family-names: Alkhanova
-    given-names: G.
-    orcid: "https://orcid.org/0000-0002-1151-7254"
   - family-names: Baenova
     given-names: G.
     orcid: "https://orcid.org/0009-0009-6191-458X"
+  - family-names: Alkhanova
+    given-names: G.
+    orcid: "https://orcid.org/0000-0002-1151-7254"
   - family-names: Niyazova
     given-names: R.
     orcid: "https://orcid.org/0000-0001-6945-7998"
@@ -35,12 +35,12 @@ preferred-citation:
     - family-names: Zhuzbayev
       given-names: S.
       orcid: "https://orcid.org/0000-0002-0018-6816"
-    - family-names: Alkhanova
-      given-names: G.
-      orcid: "https://orcid.org/0000-0002-1151-7254"
     - family-names: Baenova
       given-names: G.
       orcid: "https://orcid.org/0009-0009-6191-458X"
+    - family-names: Alkhanova
+      given-names: G.
+      orcid: "https://orcid.org/0000-0002-1151-7254"
     - family-names: Niyazova
       given-names: R.
       orcid: "https://orcid.org/0000-0001-6945-7998"
