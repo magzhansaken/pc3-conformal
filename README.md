@@ -32,17 +32,17 @@ This repository contains everything needed to reproduce the figures and tables i
 | `pc3.py` | Core method (PC³) + synthetic/UCI-Concrete experiments → Fig. 2, 10; Table 3 (synthetic, concrete blocks), Table 5 |
 | `frp_experiment.py` | FRP-modulus benchmark → Table 3 (FRP block); Fig. A1, A2 |
 | `revision_experiments.py` | `base + clip` study → Table 4; Fig. A3, A4 |
-| `robust_cp.py` | Robust bound-constrained CP recovery curve, coverage and width → Fig. 3; Tables 6, 8 |
-| `robust_concrete.py` | Real-concrete η-sweep (coverage, width) and finite-sample sensitivity → Fig. 4, 5; Tables 7, 8 |
+| `robust_cp.py` | Robust bound-constrained CP recovery curve, coverage and width → Fig. 3; Tables 6, 8 (`robust_cp_fast.py`: same numbers, base fits shared across ρ) |
+| `robust_concrete.py` | Real-concrete η-sweep (coverage, width) → Fig. 4; Tables 7, 8 |
 | `elastic_experiment.py` | DFT elastic moduli with rigorous Voigt–Reuss bounds → Fig. 6 |
 | `composite_real_experiments.py` | Real SFRC and textile-polymer composites → Fig. 7 (panels a, b); Table 9 |
 | `grouped_families.py` | **Composition-grouped validation on five cementitious families (§4.4)** → Fig. 8; Table 10 |
 | `ias.py` | **Decision-support layer** (per-query records, batch mode, JSON, inference card) → Fig. 9 |
 | `make_orphan_figs.py` | Thin wrapper that regenerates Fig. 9 through `ias.py` |
 | `omlt_comparison.py` | Calibration order under misspecified bounds (calibrate-then-clip vs. clip-then-calibrate) → Fig. 11; Table 11 |
-| `finite_sample_v2.py` | **Finite-sample study of Theorem 3** (exact coverage law vs. calibration size; fixed models, i.i.d. calibration draws from the pool) ? Fig. 5; Appendix A: Table A1, Fig. A5. `finite_sample.py` is the superseded earlier protocol |
+| `finite_sample_v2.py` | **Finite-sample study of Theorem 3** (exact coverage law vs. calibration size; fixed models, i.i.d. calibration draws from the pool) → Fig. 5; Appendix A: Table A1, Fig. A5. `finite_sample.py` is the superseded earlier protocol |
 | `verification/` | Numerical checks of Theorem 3, Lemma 2, Proposition 4 and Corollary 4 (`verify_*.py`) |
-| `grouped_summary.py` | Prints the ?4.4 summary numbers from `out/grouped_results.csv` |
+| `grouped_summary.py` | Prints the §4.4 summary numbers from `out/grouped_results.csv` |
 | *(all figures are written at 600 dpi, the resolution MDPI requests)* | |
 | `figures/` | The final rendered figures, for reference |
 
@@ -107,7 +107,7 @@ python finite_sample_v2.py            # Fig. 5;   Appendix A: Table A1, Fig. A5 
 
 Each script writes its PNGs to an `out/` folder and prints the corresponding tables to the console. The numbers reproduce the values reported in the paper exactly (fixed seeds).
 
-> The paper's **Figures 1–11, Tables 1–11 and Appendix A (Figures A1–A4, Table A1)** are the ones listed in the table above (Figure 7 combines the SFRC and textile-polymer panels, `figures/figQR_real_composites.png`). Scripts additionally emit a few auxiliary diagnostic plots with letter IDs (e.g. `figB`, `figC`, `figI`, `figK`) that are **not** part of the paper; they are kept for completeness. Reference copies of all figures are in [`figures/`](figures/).
+> The paper's **Figures 1–11, Tables 1–11 and Appendix A (Figures A1–A5, Table A1)** are the ones listed in the table above (Figure 7 combines the SFRC and textile-polymer panels, `figures/figQR_real_composites.png`). Scripts additionally emit a few auxiliary diagnostic plots with letter IDs (e.g. `figB`, `figC`, `figI`, `figK`) that are **not** part of the paper; they are kept for completeness. Reference copies of all figures are in [`figures/`](figures/).
 
 ---
 
