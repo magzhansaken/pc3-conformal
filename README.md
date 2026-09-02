@@ -40,7 +40,9 @@ This repository contains everything needed to reproduce the figures and tables i
 | `ias.py` | **Decision-support layer** (per-query records, batch mode, JSON, inference card) → Fig. 9 |
 | `make_orphan_figs.py` | Thin wrapper that regenerates Fig. 9 through `ias.py` |
 | `omlt_comparison.py` | Calibration order under misspecified bounds (calibrate-then-clip vs. clip-then-calibrate) → Fig. 11; Table 11 |
-| `finite_sample.py` | Appendix A, Table A1: effect of the (n+1) order statistic at small calibration sizes |
+| `finite_sample_v2.py` | **Finite-sample study of Theorem 3** (exact coverage law vs. calibration size; fixed models, i.i.d. calibration draws from the pool) ? Fig. 5; Appendix A: Table A1, Fig. A5. `finite_sample.py` is the superseded earlier protocol |
+| `verification/` | Numerical checks of Theorem 3, Lemma 2, Proposition 4 and Corollary 4 (`verify_*.py`) |
+| `grouped_summary.py` | Prints the ?4.4 summary numbers from `out/grouped_results.csv` |
 | *(all figures are written at 600 dpi, the resolution MDPI requests)* | |
 | `figures/` | The final rendered figures, for reference |
 
@@ -94,13 +96,13 @@ python pc3.py                         # Fig. 2, 10; Table 3 (synthetic, concrete
 python frp_experiment.py              # Table 3 (FRP block); Fig. A1, A2
 python revision_experiments.py        # Table 4;  Fig. A3, A4
 python robust_cp.py                   # Fig. 3;   Tables 6, 8
-python robust_concrete.py             # Fig. 4, 5; Tables 7, 8
+python robust_concrete.py             # Fig. 4;   Tables 7, 8
 python elastic_experiment.py          # Fig. 6            (loads data via matminer)
 python composite_real_experiments.py  # Fig. 7 (a, b); Table 9  (SFRC needs ./data; polymer auto-downloads)
 python grouped_families.py            # Fig. 8;  Table 10 (needs uhpc/scc_ht/mk_geopolymer/hybrid_aac csv in ./data)
 python ias.py                         # Fig. 9 (decision-support layer; real query)
 python omlt_comparison.py             # Fig. 11; Table 11
-python finite_sample.py               # Appendix A, Table A1 ((n+1) study)
+python finite_sample_v2.py            # Fig. 5;   Appendix A: Table A1, Fig. A5 (finite-sample study, Theorem 3)
 ```
 
 Each script writes its PNGs to an `out/` folder and prints the corresponding tables to the console. The numbers reproduce the values reported in the paper exactly (fixed seeds).
