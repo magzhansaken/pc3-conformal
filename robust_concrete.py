@@ -81,37 +81,7 @@ if __name__ == "__main__":
     plt.suptitle("Main result on REAL data (concrete): PC³ — target coverage AND 0% violations", fontweight="bold", fontsize=11)
     plt.tight_layout(); plt.savefig("out/figM_concrete_sweep.png", dpi=600); plt.close()
 
-    # (№3) finite-sample sensitivity
-    pc_fix = 93; sizes = [40, 80, 150, 300, 600]; means, stds, etas = [], [], []
-    sens = []
-    for s in range(16):
-        Xtr, Xtmp, ytr, ytmp = train_test_split(X, y, test_size=0.5, random_state=s)
-        Xcal, Xte, ycal, yte = train_test_split(Xtmp, ytmp, test_size=0.5, random_state=s)
-        f = fit_seed(Xtr, ytr, mono)
-        U = float(np.percentile(ytr, pc_fix))
-        sens.append(dict(qlo_c=f["lo"].predict(Xcal), qhi_c=f["hi"].predict(Xcal),
-                         qlo_t=f["lo"].predict(Xte), qhi_t=f["hi"].predict(Xte),
-                         ycal=ycal, yte=yte, U=U, eta=np.mean(yte > U)))
-    for m_cal in sizes:
-        cov = []
-        for s, c in enumerate(sens):
-            n = len(c["ycal"]); idx = np.random.RandomState(s).choice(n, min(m_cal, n), replace=False)
-            sc = np.maximum(c["qlo_c"][idx] - c["ycal"][idx], c["ycal"][idx] - c["qhi_c"][idx])
-            sc[(c["ycal"][idx] > c["U"]) | (c["ycal"][idx] < 0)] = np.inf
-            Q = CQ(sc, ALPHA)
-            lo = np.maximum(c["qlo_t"] - Q, 0.0); hi = np.minimum(c["qhi_t"] + Q, c["U"])
-            cov.append(np.mean((c["yte"] >= lo) & (c["yte"] <= hi)))
-        means.append(np.mean(cov)*100); stds.append(np.std(cov)*100)
-    eta_fix = np.mean([c["eta"] for c in sens]) * 100
-    print(f'\n(3) Sensitivity to calibration size (concrete, pct={pc_fix}, eta~{eta_fix:.1f}%)')
-    print(f'{"n_cal":>7}{"cov_mean%":>11}{"cov_std%":>10}')
-    for ms, mm, sd in zip(sizes, means, stds): print(f'{ms:>7}{mm:>11.1f}{sd:>10.1f}')
-
-    fig, ax = plt.subplots(figsize=(6.4, 4.4))
-    ax.errorbar(sizes, means, yerr=stds, fmt="o-", color="#2E5496", capsize=4, label="PC³ coverage (±σ, 16 runs)")
-    ax.axhline(90, color="#C0392B", ls="--", label="target 1−α = 90%")
-    ax.set_xscale("log"); ax.set_xlabel("Calibration size n_cal (log)"); ax.set_ylabel("Coverage, %")
-    ax.set_title(f"Finite-sample sensitivity (concrete, η≈{eta_fix:.0f}%):\nspread shrinks, mean approaches 90% as n_cal grows")
-    ax.legend(fontsize=8); ax.grid(alpha=.3)
-    plt.tight_layout(); plt.savefig("out/figN_ncal_sensitivity.png", dpi=600); plt.close()
-    print("\nFigures: out/figM_concrete_sweep.png, out/figN_ncal_sensitivity.png")
+    # (№3) The calibration-size study formerly produced here (figN) is superseded by finite_sample_v2.py,
+    # which fixes the models per split, draws calibration samples i.i.d. from the pool and tests the exact
+    # law of Theorem 3(ii).  Kept out of this script so that figN is not overwritten.
+    print("\nFigure: out/figM_concrete_sweep.png  (calibration-size study: see finite_sample_v2.py)")

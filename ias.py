@@ -15,16 +15,23 @@ query, a structured record that a practitioner can act on:
   point_clipped      True if the raw prediction fell outside the corridor
   interval_clipped   True if the conformal interval had to be cut at L or U
   width              interval width;  corridor_width;  width_ratio = width / corridor_width
-  feasible           True if the conformal quantile is finite, i.e. the nominal coverage
-                     1-alpha is attainable inside the corridor (Theorem 3(ii)); when False the
-                     interval returned is the full corridor and the bound itself is suspect
-  eta_hat            bound-violation rate estimated on the calibration set
-  n_cal, alpha       calibration size and miscoverage level
+  branch             'conformal' if the calibrated threshold Q is finite, 'corridor' if Q = +inf
+                     and the full corridor was returned (Lemma 2); ``feasible`` is kept as the
+                     boolean alias (Q finite) -- it is NOT a certificate that eta <= alpha
+  eta_hat            bound-violation rate on the calibration set, K/n
+  eta_lo, eta_hi     one-sided (1-delta) Clopper-Pearson bounds on eta (Corollary 4)
+  feasibility        'feasible' (eta_hi <= alpha), 'infeasible' (eta_lo > alpha) or
+                     'indeterminate' -- each definite state holds with confidence 1-delta
+  pi_inf_hat         probability that a calibration sample of this size falls back to the corridor
+  coverage_floor_marginal   lower bound on the marginal coverage (Theorem 3(i)) at confidence 1-delta
+  coverage_floor_realized   lower bound on the realized coverage of this calibrated interval, conf. 1-2*delta
+  n_cal, K, alpha, delta    calibration size, out-of-corridor count, miscoverage level, confidence level
   shap               top feature contributions of the median model (optional)
 
 Note that "the prediction lies inside the corridor" is always true after projection
 (Corollary 1), so it is *not* reported as a flag: the informative outputs are the two
-clipping indicators, the feasibility indicator and eta_hat.
+clipping indicators, the three-state feasibility diagnostic with its confidence interval, and the
+coverage floors.
 
 Modes
 -----
@@ -85,6 +92,9 @@ class PC3System:
                 width_ratio=float(width / cw) if cw > 0 else float("nan"),
                 feasible=bool(m.feasible), eta_hat=float(m.eta_hat),
                 n_cal=int(m.n_cal), alpha=float(m.alpha),
+                **({k: m.diag[k] for k in ("branch", "eta_lo", "eta_hi", "feasibility", "pi_inf_hat",
+                                           "coverage_floor_marginal", "coverage_floor_realized", "K", "delta")}
+                   if getattr(m, "diag", None) else {}),
             )
             if sv is not None:
                 order = np.argsort(-np.abs(sv[i]))[: self.top_k]
@@ -129,14 +139,27 @@ def render_card(rec, path, title="Inference card (PC3)", unit="MPa"):
     fig.suptitle(title, fontsize=15, fontweight="bold", color="#1F4E78", x=0.02, y=0.985, ha="left")
     line1 = (f"Predicted strength: {rec['y_hat']:.1f} {unit}     {cov}% interval: "
              f"[{rec['lo']:.1f}, {rec['hi']:.1f}] {unit}     physical corridor: [{rec['L']:.1f}, {rec['U']:.1f}] {unit}")
-    feas = "yes" if rec["feasible"] else "no (full corridor returned)"
-    line2 = (f"Target coverage attainable inside corridor: {feas}     "
-             f"calibration bound-violation rate  \u03b7\u0302 = {100*rec['eta_hat']:.1f}% (n = {rec['n_cal']})     "
-             f"point clipped: {'yes' if rec['point_clipped'] else 'no'}     "
-             f"interval clipped: {'yes' if rec['interval_clipped'] else 'no'}")
+    if "feasibility" in rec:
+        ci = int(round(100 * (1 - 2 * rec["delta"]))); cf = int(round(100 * (1 - rec["delta"])))
+        line2 = (f"Calibration (n = {rec['n_cal']}): bound-violation rate  \u03b7\u0302 = {100*rec['eta_hat']:.1f}%, "
+                 f"{ci}% CI [{100*rec['eta_lo']:.1f}%, {100*rec['eta_hi']:.1f}%]     "
+                 f"{cov}% level inside corridor: {rec['feasibility']} ({cf}% conf.)     "
+                 f"returned: {'conformal interval' if rec['branch']=='conformal' else 'full corridor'}")
+        line3 = (f"Coverage floors: marginal \u2265 {100*rec['coverage_floor_marginal']:.1f}% ({cf}% conf.), "
+                 f"this calibration \u2265 {100*rec['coverage_floor_realized']:.1f}% ({ci}% conf.)     "
+                 f"fallback probability at \u03b7\u0302: {rec['pi_inf_hat']:.2f}     "
+                 f"point clipped: {'yes' if rec['point_clipped'] else 'no'}     "
+                 f"interval clipped: {'yes' if rec['interval_clipped'] else 'no'}")
+    else:
+        feas = "Q finite" if rec["feasible"] else "Q = +inf (full corridor returned)"
+        line2 = (f"Calibration: {feas}     \u03b7\u0302 = {100*rec['eta_hat']:.1f}% (n = {rec['n_cal']})     "
+                 f"point clipped: {'yes' if rec['point_clipped'] else 'no'}     "
+                 f"interval clipped: {'yes' if rec['interval_clipped'] else 'no'}")
+        line3 = None
     fig.text(0.02, 0.885, line1, fontsize=10.5)
-    fig.text(0.02, 0.83, line2, fontsize=9.6, color="#333333")
-    axL = fig.add_axes([0.04, 0.14, 0.44, 0.58])
+    fig.text(0.02, 0.835, line2, fontsize=9.2, color="#333333")
+    if line3: fig.text(0.02, 0.79, line3, fontsize=9.2, color="#333333")
+    axL = fig.add_axes([0.04, 0.14, 0.44, 0.54])
     L, U, lo, hi, p = rec["L"], rec["U"], rec["lo"], rec["hi"], rec["y_hat"]
     axL.axhspan(0, 1, color="#e7e7e7")
     axL.axvspan(lo, hi, color="#9CC3E0", alpha=0.9)
@@ -152,7 +175,7 @@ def render_card(rec, path, title="Inference card (PC3)", unit="MPa"):
                         Patch(facecolor="#e7e7e7", label="physical corridor [L, U]"),
                         Patch(facecolor="#9CC3E0", label=f"{cov}% conformal interval")],
                loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=3, fontsize=8, frameon=False)
-    axR = fig.add_axes([0.56, 0.14, 0.40, 0.58])
+    axR = fig.add_axes([0.56, 0.14, 0.40, 0.54])
     if rec.get("shap"):
         feats = [f for f, _ in rec["shap"]][::-1]; vals = [v for _, v in rec["shap"]][::-1]
         cols = ["#C0392B" if v < 0 else "#3a8a4d" for v in vals]
@@ -189,7 +212,7 @@ def demo(dataset="concrete", ceiling_percentile=97.5, alpha=0.1, seed=0, row="au
     card = render_card(rec, f"{out}/figG_ias_card.png",
                        title=f"Inference card (PC3): UCI Concrete, empirical ceiling P{ceiling_percentile:g}")
     print(json.dumps({k: v for k, v in rec.items() if k != "features"}, indent=2))
-    print(f"batch: {len(df)} queries, {100*df.feasible.mean():.0f}% feasible, "
+    print(f"batch: {len(df)} queries, feasibility = {df['feasibility'].iloc[0] if 'feasibility' in df else 'n/a'}, "
           f"{100*df.point_clipped.mean():.1f}% points clipped, {100*df.interval_clipped.mean():.1f}% intervals clipped, "
           f"test coverage {100*np.mean((yte[:200] >= df.lo) & (yte[:200] <= df.hi)):.1f}%")
     print("wrote:", f"{out}/ias_record.json", f"{out}/ias_batch_demo.csv", card)

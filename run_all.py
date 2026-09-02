@@ -21,11 +21,11 @@ PIPELINE = [
     ("frp_experiment.py",              "Supp. S2",        False),
     ("revision_experiments.py",        "Supp. S3",        False),
     ("robust_cp.py",                   "Fig. 3; Tables 6, 8", False),
-    ("robust_concrete.py",             "Fig. 4, 5; Tables 7, 8", False),
+    ("robust_concrete.py",             "Fig. 4; Tables 7, 8", False),
     ("composite_real_experiments.py",  "Fig. 7; Table 9", True),
     ("grouped_families.py",            "Fig. 8, Table 10",True),
     ("omlt_comparison.py",             "Fig. 11, Table 11", False),
-    ("finite_sample.py",               "Supplementary Table S1", False),
+    ("finite_sample_v2.py",            "Fig. N, Table A1, Fig. A5 (finite-sample study, Theorem 3)", False),
     ("elastic_experiment.py",          "Fig. 6",          False),
     ("ias.py",                         "Fig. 9 (decision-support layer)", False),
 ]

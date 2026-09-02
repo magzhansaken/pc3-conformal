@@ -92,9 +92,93 @@ def fit_quantile(Xtr, ytr, alpha, monotone, use_monotone):
                                       min_samples_leaf=20, l2_regularization=1.0, random_state=RNG)
     return m.fit(Xtr, ytr)
 
-def conformal_quantile(scores, alpha):
-    n = len(scores); level = min(1.0, np.ceil((n + 1) * (1 - alpha)) / n)
-    return np.quantile(scores, level, method="higher")
+def conformal_quantile(scores, alpha, legacy=False):
+    """Conformal threshold Q: the m-th smallest score, m = ceil((n+1)(1-alpha)) (Algorithm 1, line 11).
+
+    Scores may be +inf (projection-aware score, Eq. 6).  Q = +inf whenever fewer than m
+    scores are finite -- in particular whenever m > n, i.e. n < 1/alpha - 1 (Lemma 2).
+    ``legacy=True`` reproduces the threshold used by the originally submitted version,
+    ``np.quantile(scores, m/n, method="higher")``, which returns the (m+1)-th order
+    statistic for m < n (one rank more conservative) and the largest finite score for m > n.
+    """
+    E = np.asarray(scores, dtype=float); n = len(E); m = int(np.ceil((n + 1) * (1 - alpha)))
+    if legacy:
+        level = min(1.0, m / n)
+        return float(np.quantile(E, level, method="higher"))
+    finite = np.sort(E[np.isfinite(E)])
+    return float(finite[m - 1]) if m <= len(finite) else float("inf")
+
+
+# ---- finite-sample diagnostics of the violation probability eta (Theorem 3, Lemma 2, Cor. 4) ----
+from scipy.stats import beta as _beta_dist, binom as _binom
+
+def clopper_pearson(k, n, delta=0.05):
+    """One-sided exact (1-delta) bounds on eta from k ~ Bin(n, eta):
+    P(eta <= hi) >= 1-delta and P(eta >= lo) >= 1-delta.  Together they form a two-sided
+    (1-2*delta) Clopper-Pearson interval."""
+    lo = 0.0 if k == 0 else float(_beta_dist.ppf(delta, k, n - k + 1))
+    hi = 1.0 if k == n else float(_beta_dist.ppf(1 - delta, k + 1, n - k))
+    return lo, hi
+
+def fallback_probability(n, alpha, eta):
+    """pi_inf = P(Bin(n, eta) >= floor((n+1) alpha)): probability that a calibration sample of
+    size n makes Algorithm 1 return the full corridor (Lemma 2(a))."""
+    l = int(np.floor((n + 1) * alpha))
+    return float(_binom.sf(l - 1, n, eta))
+
+def marginal_coverage_floor(n, alpha, eta):
+    """Theorem 3(i): P(Y in C_hat) >= 1 - alpha - eta * pi_inf(eta).  Non-increasing in eta."""
+    return float(1 - alpha - eta * fallback_probability(n, alpha, eta))
+
+def exact_marginal_coverage(n, alpha, eta):
+    """Theorem 3(ii), closed form: with K~ ~ Bin(n+1, eta) and l = floor((n+1) alpha),
+        P(Y in C_hat) = 1 - E[max(l, K~)]/(n+1) = (m - E[(K~ - l)^+])/(n+1),
+    exact under continuous scores and a lower bound in general; non-increasing in eta.
+    Equals (1-eta) [ sum_{k<=n-m} Bin(k; n,eta) m/(n-k+1) + pi_inf ]."""
+    m = int(np.ceil((n + 1) * (1 - alpha))); l = n + 1 - m
+    ks = np.arange(n + 2)
+    return float((m - (_binom.pmf(ks, n + 1, eta) * np.maximum(ks - l, 0)).sum()) / (n + 1))
+
+def exact_marginal_coverage_sum(n, alpha, eta):
+    """Theorem 3(ii) in its summation form (used to cross-check the closed form)."""
+    m = int(np.ceil((n + 1) * (1 - alpha))); pi = fallback_probability(n, alpha, eta)
+    if n - m < 0:
+        return float((1 - eta) * pi)
+    ks = np.arange(0, n - m + 1); b = _binom.pmf(ks, n, eta)
+    return float((1 - eta) * ((b * m / (n - ks + 1)).sum() + pi))
+
+def feasibility_diagnostics(K, n, alpha, delta=0.05):
+    """Decision-support diagnostics for the feasibility of the nominal level (Section 3.4).
+
+    K      number of out-of-corridor calibration responses
+    Returns a dict with
+      eta_hat, eta_lo, eta_hi   point estimate K/n and one-sided (1-delta) Clopper-Pearson bounds
+      feasibility               'feasible'      if eta_hi <= alpha  (eta <= alpha with confidence 1-delta)
+                                'infeasible'    if eta_lo >  alpha  (eta >  alpha with confidence 1-delta)
+                                'indeterminate' otherwise
+      branch                    'conformal' (Q finite) or 'corridor' (Q = +inf): what was returned
+      pi_inf_hat, pi_inf_hi     fallback probability at eta_hat and at eta_hi
+      coverage_floor_marginal   exact_marginal_coverage(n, alpha, eta_hi): the marginal coverage is at least this
+                                with confidence >= 1-delta (Theorem 3(ii) is a lower bound without continuity and
+                                is non-increasing in eta); coverage_floor_closed_form is the simpler bound of
+                                Theorem 3(i), 1 - alpha - eta_hi * pi_inf(eta_hi), which is looser near eta = alpha
+      coverage_floor_realized   floor on the realized coverage of THIS calibrated interval, confidence
+                                >= 1-2*delta: (1-eta_hi) * Beta_{delta}(m, n-K+1-m) if Q finite, else 1-eta_hi
+    """
+    K = int(K); n = int(n); m = int(np.ceil((n + 1) * (1 - alpha)))
+    eta_hat = K / n; lo, hi = clopper_pearson(K, n, delta)
+    q_finite = (n - K) >= m
+    state = "feasible" if hi <= alpha else ("infeasible" if lo > alpha else "indeterminate")
+    if q_finite:
+        floor_real = (1 - hi) * float(_beta_dist.ppf(delta, m, n - K + 1 - m))
+    else:
+        floor_real = 1 - hi
+    return dict(eta_hat=float(eta_hat), eta_lo=lo, eta_hi=hi, delta=float(delta), feasibility=state,
+                branch="conformal" if q_finite else "corridor", K=K, n_cal=n, m=m,
+                pi_inf_hat=fallback_probability(n, alpha, eta_hat), pi_inf_hi=fallback_probability(n, alpha, hi),
+                coverage_floor_marginal=exact_marginal_coverage(n, alpha, hi),
+                coverage_floor_closed_form=marginal_coverage_floor(n, alpha, hi),
+                coverage_floor_realized=float(floor_real))
 
 
 # ============================================================================
@@ -116,12 +200,12 @@ class PC3:
     attainable inside the corridor, ``Q = +inf`` and ``predict`` returns the full corridor.
     """
     def __init__(self, monotone, bounds_fn, score="cqr", use_monotone=True, project=True,
-                 physics_aware=True, alpha=0.1, mondrian=False, group_fn=None, robust=False):
+                 physics_aware=True, alpha=0.1, mondrian=False, group_fn=None, robust=False, delta=0.05):
         self.monotone, self.bounds_fn, self.score = monotone, bounds_fn, score
         self.use_monotone, self.project, self.physics_aware = use_monotone, project, physics_aware
         self.alpha, self.mondrian, self.group_fn = alpha, mondrian, group_fn
-        self.robust = robust
-        self.eta_hat, self.feasible, self.n_cal = None, None, None
+        self.robust, self.delta = robust, delta
+        self.eta_hat, self.feasible, self.n_cal, self.K, self.diag = None, None, None, None, None
 
     def fit(self, Xtr, ytr):
         a = self.alpha
@@ -152,9 +236,13 @@ class PC3:
         E = self._scores(Xcal, ycal)
         L, U = self.bounds_fn(Xcal)
         self.n_cal = len(ycal)
-        self.eta_hat = float(np.mean((ycal < L - 1e-12) | (ycal > U + 1e-12)))  # bound-violation rate on calibration
-        self.Qg = conformal_quantile(E, self.alpha)                     # global quantile
-        self.feasible = bool(np.isfinite(self.Qg))                      # Q = +inf  =>  full corridor
+        viol = (ycal < L - 1e-12) | (ycal > U + 1e-12)
+        self.K = int(viol.sum())                                        # out-of-corridor calibration count
+        self.eta_hat = float(self.K / self.n_cal)                       # bound-violation rate on calibration
+        self.Qg = conformal_quantile(E, self.alpha)                     # global quantile (m-th order statistic)
+        self.feasible = bool(np.isfinite(self.Qg))                      # branch taken: Q finite  (NOT a certificate that eta <= alpha)
+        # finite-sample diagnostics: Clopper-Pearson bounds on eta, three-state feasibility, coverage floors
+        self.diag = feasibility_diagnostics(self.K, self.n_cal, self.alpha, self.delta) if self.robust else None
         self.Qgrp = {}
         if self.mondrian and self.group_fn is not None:                 # per-group quantile
             g = self.group_fn(Xcal)
@@ -203,9 +291,6 @@ def gp_interval(Xtr, ytr, Xte, alpha, cap=500):
     return mu, mu - z * sd, mu + z * sd
 
 def ngb_interval(Xtr, ytr, Xte, alpha):
-    # NGBoost draws from the global NumPy stream during boosting, so random_state
-    # alone does not make it reproducible; seed the global stream as well.
-    np.random.seed(0)
     m = NGBRegressor(Dist=Normal, n_estimators=300, learning_rate=0.04, verbose=False,
                      random_state=0).fit(Xtr, ytr)
     d = m.pred_dist(Xte); z = _z(alpha)
@@ -417,7 +502,13 @@ def ias_demo(loader, name, alpha=0.1):
     print("  Input:", {f: round(float(v), 2) for f, v in zip(feats, x0[0])})
     print(f"  Prediction: {p[0]:.2f}   {int((1-alpha)*100)}% interval: [{lo[0]:.2f}, {hi[0]:.2f}]")
     print(f"  Physical corridor: [{L[0]:.2f}, {U[0]:.2f}]   point clipped: {bool(abs(raw[0]-p[0])>1e-9)}")
-    print(f"  Calibration: n={mdl.n_cal}, eta_hat={100*mdl.eta_hat:.1f}%, target attainable inside corridor: {mdl.feasible}")
+    d = mdl.diag
+    print(f"  Calibration: n={mdl.n_cal}, K={d['K']}, eta_hat={100*d['eta_hat']:.1f}% "
+          f"({int(100*(1-2*d['delta']))}% CI [{100*d['eta_lo']:.1f}%, {100*d['eta_hi']:.1f}%])")
+    print(f"  Feasibility of the {int(100*(1-alpha))}% level inside the corridor: {d['feasibility']} "
+          f"(confidence {int(100*(1-d['delta']))}%);  branch returned: {d['branch']};  fallback probability at eta_hat: {d['pi_inf_hat']:.2f}")
+    print(f"  Coverage floors: marginal >= {100*d['coverage_floor_marginal']:.1f}% (conf. {int(100*(1-d['delta']))}%), "
+          f"realized (this calibration) >= {100*d['coverage_floor_realized']:.1f}% (conf. {int(100*(1-2*d['delta']))}%)")
     try:
         import shap
         bg = shap.utils.sample(Xtr, 80, random_state=0)
